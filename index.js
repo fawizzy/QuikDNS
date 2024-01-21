@@ -45,6 +45,7 @@ server.on("message", async (packet, info) => {
     console.log("Questions - empty");
   }
 
+  // Check if domain is in cache
   if (domainName in cache) {
     responseDNS = cache[domainName];
     console.log(" from cache");
