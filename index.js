@@ -5,6 +5,8 @@ import https from "https";
 const server = UDP.createSocket("udp4");
 
 const port = 2222;
+let responseDNS;
+const cache = {};
 
 server.on("listening", () => {
   const address = server.address();
@@ -43,17 +45,25 @@ server.on("message", async (packet, info) => {
     console.log("Questions - empty");
   }
 
-  // Make DNS-over-HTTPS request to Google DNS
-  const responseDNS = await new Promise((resolve, reject) => {
-    https.get(
-      `https://dns.google/resolve?name=${domainName}&class=${questionClass}&ct=application/dns-message`,
-      (res) => {
-        res.on("data", (data) => {
-          resolve(data);
-        });
-      }
-    );
-  });
+  if (domainName in cache) {
+    responseDNS = cache[domainName];
+    console.log(" from cache");
+  } else {
+    // Make DNS-over-HTTPS request to Google DNS
+    responseDNS = await new Promise((resolve, reject) => {
+      https.get(
+        `https://dns.google/resolve?name=${domainName}&class=${questionClass}&ct=application/dns-message`,
+        (res) => {
+          res.on("data", (data) => {
+            resolve(data);
+          });
+        }
+      );
+    });
+
+    cache[domainName] = responseDNS;
+    console.log(" from google resolver");
+  }
 
   // Write DNS ID back to the response
   const responseBuffer = Buffer.from(responseDNS);
